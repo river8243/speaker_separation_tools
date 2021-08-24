@@ -1,0 +1,15 @@
+name: conda-test
+prefix: /home/jovyan/.conda
+dependencies:
+  - python=3.6.6
+  - argcomplete
+  - ipykernel
+  - notebook
+  - pip
+  - pip:
+      - torch==1.7.1
+      - torchaudio==0.7.2
+      - cffi
+      - numba
+      - sklearn
+      - numpy

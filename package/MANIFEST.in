@@ -1,0 +1,9 @@
+include src/speaker_separation/__init__.py
+include src/speaker_separation/speaker_separation.py
+include src/speaker_separation/dprnn.py
+include src/speaker_separation/functions.py
+include src/speaker_separation/dprnn_model/__init__.py
+include src/speaker_separation/dprnn_model/dprnn.yaml
+include src/speaker_separation/dprnn_model/decoder.ckpt
+include src/speaker_separation/dprnn_model/encoder.ckpt
+include src/speaker_separation/dprnn_model/masknet.ckpt

@@ -3,18 +3,19 @@ import scipy
 import scipy.io.wavfile
 import os
 import numpy as np
+import speaker_separation
 try:
-    from functions import load_model, read_wav
+    from functions import load_model
 except:
-    from speaker_separation.functions import load_model, read_wav
+    from speaker_separation.functions import load_model
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-root = {'AIcloud': '/home/jovyan/.local',
-        'Staging': './env',
-        'Uat': './env',
-        'Prod': './env'}
-path = '/lib/python3.6/site-packages/speaker_separation/dprnn_model'
-
+# root = {'AIcloud': '/home/jovyan/.local',
+#         'Staging': './env',
+#         'Uat': './env',
+#         'Prod': './env'}
+# path = '/lib/python3.6/site-packages/speaker_separation/dprnn_model'
+path2 = speaker_separation.__path__[0] + '/dprnn_model'
 
 
 class Speaker_separator():
@@ -22,15 +23,16 @@ class Speaker_separator():
         self.load_dprnn_model(model_path=model_path, device=device, env_now=env_now)
 
     def load_dprnn_model(self, model_path='', device=device, env_now='AIcloud'):
-        if model_path!='':
+        if model_path != '':
             self.model = load_model(model_path, device)
         else:
-            m_path = root[env_now]+path
-            self.model = load_model(m_path, device)
+            # m_path = root[env_now]+path
+            # self.model = load_model(m_path, device)
+            self.model = load_model(path2, device)
 
     def separate_by_dprnn(self, wav_array_list=[], wav_path_list=[],
-                                save_path=os.getcwd(), save_name=[],
-                                input_array=True, input_path=False, return_array=True):
+                          save_path=os.getcwd(), save_name=[],
+                          input_array=True, input_path=False, return_array=True):
         """
         Speaker separator with DPRNN model.
 
@@ -70,12 +72,12 @@ class Speaker_separator():
                                   If something wrong, you will get list of message.
                                   example: ['Sorry, separate wav_path_list[1] is failed.']
         """
-        assert (input_array+input_path)==1, 'Please choose one of your input data type, numpy array or wav path.'
+        assert (input_array + input_path) == 1, 'Please choose one of your input data type, numpy array or wav path.'
 
         result_array = []
         if input_array:
             assert len(wav_array_list) > 0, 'Please put wav data(s) in wav_array_list.'
-            assert sum([type(i) == type(np.array([])) for i in wav_array_list]) == len(wav_array_list), 'All datas in wav_array_list must be numpy array.'
+            assert sum([isinstance(i, np.ndarray) for i in wav_array_list]) == len(wav_array_list), 'All datas in wav_array_list must be numpy array.'
             assert sum([i.shape[0] == 1 for i in wav_array_list]) == len(wav_array_list), 'All arrays shape must be 1 x n.'
             for i in range(len(wav_array_list)):
                 try:
@@ -113,4 +115,3 @@ class Speaker_separator():
             return 'Separate all wavs successed.'
         else:
             return save_output_result
-

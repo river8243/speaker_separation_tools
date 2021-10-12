@@ -1,4 +1,4 @@
-from speechbrain.pretrained import Pretrained  
+from speechbrain.pretrained import Pretrained
 import torchaudio
 import torch
 import torch.nn.functional as F
@@ -15,7 +15,7 @@ def concate_wav(wav_pair, seg_len, overlap, rate=8000):
     result_wav = [wav_pair[0]]
     for i in range(1, len(wav_pair)):
         item = wav_pair[i]
-        last_item = wav_pair[i-1]
+        last_item = wav_pair[i - 1]
         if cosine_similarity(last_item[0][-overlap:], item[0][:overlap]) < \
            cosine_similarity(last_item[0][-overlap:], item[1][:overlap]):
             wav_pair[i][0], wav_pair[i][1] = wav_pair[i][1], wav_pair[i][0]
@@ -24,7 +24,10 @@ def concate_wav(wav_pair, seg_len, overlap, rate=8000):
 
 
 def cosine_similarity(a, b):
-    cos_sim = dot(a, b)/(norm(a)*norm(b))
+    if dot(a, b) == 0:
+        cos_sim = 0
+    else:
+        cos_sim = dot(a, b) / (norm(a) * norm(b))
     return cos_sim
 
 
@@ -36,8 +39,8 @@ def split_wav(wav, seg_len=210, overlap=30, rate=8000):
         return [wav]
 
     splited_wav = []
-    for i in range(0, wav.shape[-1] - (wav.shape[-1] % (seg_len-overlap)) + 1, seg_len-overlap):
-        splited_wav.append(wav[:, i: i+seg_len])
+    for i in range(0, wav.shape[-1] - (wav.shape[-1] % (seg_len - overlap)) + 1, seg_len - overlap):
+        splited_wav.append(wav[:, i: i + seg_len])
     if len(splited_wav[-1][-1]) < overlap:
         splited_wav = splited_wav[: -1]
     return splited_wav

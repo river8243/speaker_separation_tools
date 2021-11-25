@@ -1,34 +1,58 @@
+"""
+speaker separation main function
+"""
 import torch
 import scipy
 import scipy.io.wavfile
 import os
+import wget
 import numpy as np
-import speaker_separation
-try:
-    from functions import load_model
-except:
-    from speaker_separation.functions import load_model
+from .functions import load_model
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-# root = {'AIcloud': '/home/jovyan/.local',
-#         'Staging': './env',
-#         'Uat': './env',
-#         'Prod': './env'}
-# path = '/lib/python3.6/site-packages/speaker_separation/dprnn_model'
-path2 = speaker_separation.__path__[0] + '/dprnn_model'
+
+root = os.path.dirname(os.path.realpath(__file__))
+m_path = os.path.join(root, 'dprnn_model')
+model_object = ['dprnn.yaml', 'decoder.ckpt', 'encoder.ckpt', 'masknet.ckpt']
+
+
+class ModelObjectError(Exception):
+    """
+    Some model component is not exists.
+    """
+    pass
 
 
 class Speaker_separator():
-    def __init__(self, model_path='', device=device, env_now='AIcloud'):
-        self.load_dprnn_model(model_path=model_path, device=device, env_now=env_now)
+    """
+    speaker separation class
+    """
+    def __init__(self, model_path='default', device=device, model_version='v1'):
+        # if you want to use default model, check whether model exist or not
+        self.check_model_conponent(model_path=model_path, model_version=model_version)
+        self.load_dprnn_model(model_path=model_path, device=device, model_version=model_version)
 
-    def load_dprnn_model(self, model_path='', device=device, env_now='AIcloud'):
-        if model_path != '':
-            self.model = load_model(model_path, device)
+    def check_model_conponent(self, model_path='default', model_version='v1'):
+        # get model path
+        if model_path == 'default':
+            check_model_path = os.path.join(m_path, model_version)
         else:
-            # m_path = root[env_now]+path
-            # self.model = load_model(m_path, device)
-            self.model = load_model(path2, device)
+            check_model_path = model_path
+        # get all objects list in this model path
+        conponent_list = os.listdir(check_model_path)
+        # check whether conponent in list or not
+        for i in model_object:
+            if i not in conponent_list:
+                raise ModelObjectError('{} is not exists.'.format(i))
+
+    def load_dprnn_model(self, model_path='default', device=device, model_version='v1'):
+        # if you have model in local path, use it
+        if model_path != 'default':
+            self.model = load_model(model_path, device)
+        # if you want to use default model, load model from package path
+        else:
+            model_ver_path = os.path.join(m_path, model_version)
+            self.model = load_model(model_ver_path, device)
 
     def separate_by_dprnn(self, wav_array_list=[], wav_path_list=[],
                           save_path=os.getcwd(), save_name=[],

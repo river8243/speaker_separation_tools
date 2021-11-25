@@ -1,13 +1,17 @@
+"""
+read wav file and load model tools
+"""
 import torchaudio
-try:
-    from dprnn import DprnnModel
-except:
-    from speaker_separation.dprnn import DprnnModel
+from .dprnn import DprnnModel
 
-# path_list: a list of wav path 
+# path_list: a list of wav path
 # return_type: return numpy array or tensor
 
+
 def read_wav(path_list, return_type="np"):
+    """
+    read wav file
+    """
     assert return_type in ["np", "tensor"], "return_type must in ['np', 'tensor']."
 
     if return_type == "tensor":
@@ -27,7 +31,9 @@ def read_wav(path_list, return_type="np"):
 # device:  model device
 
 def load_model(model_path, device):
-    # load model
+    """
+    load model
+    """
     run_opts = {"device": device}
     model = DprnnModel.from_hparams(source=model_path, savedir=model_path, hparams_file='dprnn.yaml', run_opts=run_opts)
     return model

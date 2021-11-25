@@ -1,3 +1,6 @@
+"""
+dprnn module and some tools
+"""
 from speechbrain.pretrained import Pretrained
 import torchaudio
 import torch
@@ -8,6 +11,9 @@ from numpy.linalg import norm
 
 
 def concate_wav(wav_pair, seg_len, overlap, rate=8000):
+    """
+    concate wav tool
+    """
     if len(wav_pair) == 1:
         return wav_pair[0]
 
@@ -24,6 +30,9 @@ def concate_wav(wav_pair, seg_len, overlap, rate=8000):
 
 
 def cosine_similarity(a, b):
+    """
+    cosine similarity
+    """
     if dot(a, b) == 0:
         cos_sim = 0
     else:
@@ -32,6 +41,9 @@ def cosine_similarity(a, b):
 
 
 def split_wav(wav, seg_len=210, overlap=30, rate=8000):
+    """
+    split wav tool
+    """
     seg_len = int(seg_len * rate)
     overlap = int(overlap * rate)
 
@@ -47,6 +59,9 @@ def split_wav(wav, seg_len=210, overlap=30, rate=8000):
 
 
 class DprnnModel(Pretrained):
+    """
+    dprnn model module
+    """
     MODULES_NEEDED = ["encoder", "masknet", "decoder"]
 
     def separate_batch(self, mix):

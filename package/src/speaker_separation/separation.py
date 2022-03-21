@@ -16,9 +16,30 @@ m_path = os.path.join(root, 'dprnn_model')
 model_object = ['dprnn.yaml', 'decoder.ckpt', 'encoder.ckpt', 'masknet.ckpt']
 
 
+class ModelVersionError(Exception):
+    """
+    Some error when download given version model.
+    """
+    pass
+
+
 class ModelObjectError(Exception):
     """
     Some model component is not exists.
+    """
+    pass
+
+
+class SeparationError(Exception):
+    """
+    Somethong wrong when separate audio using DPRNN model.
+    """
+    pass
+
+
+class SaveWavfileError(Exception):
+    """
+    Somethong wrong when save wavfile.
     """
     pass
 
@@ -56,7 +77,8 @@ class Speaker_separator():
 
     def separate_by_dprnn(self, wav_array_list=[], wav_path_list=[],
                           save_path=os.getcwd(), save_name=[],
-                          input_array=True, input_path=False, return_array=True):
+                          input_array=True, input_path=False, return_array=True,
+                          seg_len=210, overlap=30, rate=8000):
         """
         Speaker separator with DPRNN model.
 
@@ -88,14 +110,13 @@ class Speaker_separator():
                                                   [1., 1., ..., 0.]], dtype=float32),
                                            array([[0., 1., ..., 0.],
                                                   [1., 0., ..., 1.]], dtype=float32)]
-                                 If something wrong, you will get list of message.
-                                 example: ['Sorry, wav_array_list[1] is failed.']
+                                 If something wrong, you will get error message.
                 not return_array: You will get output wav files in save_path.
                                   example: '/home/jovyan/my_project/result/aaa_s1.wav'
                                            '/home/jovyan/my_project/result/aaa_s2.wav'
-                                  If something wrong, you will get list of message.
-                                  example: ['Sorry, separate wav_path_list[1] is failed.']
+                                  If something wrong, you will get error message.
         """
+        assert (isinstance(input_array, bool) + isinstance(input_path, bool)) == 2, 'input_array, input_path must be boolean.'
         assert (input_array + input_path) == 1, 'Please choose one of your input data type, numpy array or wav path.'
 
         result_array = []
@@ -105,37 +126,32 @@ class Speaker_separator():
             assert sum([i.shape[0] == 1 for i in wav_array_list]) == len(wav_array_list), 'All arrays shape must be 1 x n.'
             for i in range(len(wav_array_list)):
                 try:
-                    result_array.append(self.model.separate_wav(wav_array_list[i]))
-                except:
-                    result_array.append(f'Sorry, wav_array_list[{i}] is fail.')
+                    result_array.append(self.model.separate_wav(wav_array_list[i],
+                                                                seg_len=seg_len, overlap=overlap, rate=rate))
+                except Exception as e:
+                    raise SeparationError(f'Sorry, separate wav_array_list[{i}] is failed.')
         if input_path:
             assert len(wav_path_list) > 0, 'Please put wav path(s) in wav_path_list.'
             for i in range(len(wav_path_list)):
                 try:
-                    result_array.append(self.model.separate_file(wav_path_list[i]))
-                except:
-                    result_array.append(f'Sorry, separate wav_path_list[{i}] is failed.')
+                    result_array.append(self.model.separate_file(wav_path_list[i],
+                                                                 seg_len=seg_len, overlap=overlap, rate=rate))
+                except Exception as e:
+                    raise SeparationError(f'Sorry, separate wav_path_list[{i}] is failed.')
 
         if return_array:
             return result_array
 
         assert len(save_name) == len(wav_array_list) or len(save_name) == len(wav_path_list) or save_name == [], 'Please check length of save_name.'
         assert sum([type(i) == str for i in save_name]) == len(save_name) or save_name == [], 'Please let all values in save_name be string.'
-        save_output_result = []
         for i in range(len(result_array)):
-            if type(result_array[i]) == str:
-                save_output_result.append(f'Sorry, separate wav_path_list[{i}] is failed.')
+            if save_name == []:
+                wav_name = f'output_wav_{i}'
             else:
-                if save_name == []:
-                    wav_name = f'output_wav_{i}'
-                else:
-                    wav_name = save_name[i]
-                try:
-                    scipy.io.wavfile.write(f"{save_path}/{wav_name}_s1.wav", 8000, result_array[i][0])
-                    scipy.io.wavfile.write(f"{save_path}/{wav_name}_s2.wav", 8000, result_array[i][1])
-                except:
-                    save_output_result.append(f'Sorry, save wav_path_list[{i}] result is failed.')
-        if save_output_result == []:
-            return 'Separate all wavs successed.'
-        else:
-            return save_output_result
+                wav_name = save_name[i]
+            try:
+                scipy.io.wavfile.write(f"{save_path}/{wav_name}_s1.wav", rate, result_array[i][0])
+                scipy.io.wavfile.write(f"{save_path}/{wav_name}_s2.wav", rate, result_array[i][1])
+            except:
+                raise SaveWavfileError(f'Sorry, save {wav_name} result is failed.')
+        return 'Separate all wavs successed.'

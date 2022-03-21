@@ -8,7 +8,7 @@ from .dprnn import DprnnModel
 # return_type: return numpy array or tensor
 
 
-def read_wav(path_list, return_type="np"):
+def read_wav(path_list, return_type="np", rate=8000):
     """
     read wav file
     """
@@ -16,12 +16,18 @@ def read_wav(path_list, return_type="np"):
 
     if return_type == "tensor":
         assert len(path_list) == 1, "If return_type is tensor, length of path_list must be 1."
-        batch, _ = torchaudio.sox_effects.apply_effects_file(path_list[0], effects=[["rate", "8000"]])
+        try:
+            batch, _ = torchaudio.sox_effects.apply_effects_file(path_list[0], effects=[["rate", f"{rate}"]])
+        except Exception as e:
+            raise e
         return batch
 
     wav_list = []
     for path in path_list:
-        batch, _ = torchaudio.sox_effects.apply_effects_file(path, effects=[["rate", "8000"]])
+        try:
+            batch, _ = torchaudio.sox_effects.apply_effects_file(path, effects=[["rate", f"{rate}"]])
+        except Exception as e:
+            raise e
         wav_list.append(batch)
 
     return [b.numpy() for b in wav_list]

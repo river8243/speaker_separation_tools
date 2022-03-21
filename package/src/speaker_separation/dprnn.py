@@ -100,7 +100,7 @@ class DprnnModel(Pretrained):
             est_source = est_source[:, :T_origin, :]
         return est_source
 
-    def separate_file(self, path, seg_len=210, overlap=30):
+    def separate_file(self, path, seg_len=210, overlap=30, rate=8000):
         """Separate sources from file.
 
         Arguments
@@ -108,31 +108,45 @@ class DprnnModel(Pretrained):
         path : str
             Path to file which has a mixture of sources. It can be a local
             path, a web url, or a huggingface repo.
-        savedir : path
-            Path where to store the wav signals (when downloaded from the web).
+        seg_len : int
+            segment length of audio. (s)
+        overlap : int
+            overlap length of audio. (s)
+        rate : int
+            rate of audio. (s)
         Returns
         -------
         tensor
             Separated sources
         """
         # sample rate limit to 8000
-        wav_t, _ = torchaudio.sox_effects.apply_effects_file(path, effects=[["rate", "8000"]])
+        try:
+            wav_t, _ = torchaudio.sox_effects.apply_effects_file(path, effects=[["rate", f"{rate}"]])
+        except Exception as e:
+            raise e
         wav_a = np.array(wav_t)
-        splited_wav = split_wav(wav_a, seg_len, overlap)
-        temp_result = []
-        for wav in splited_wav:
-            batch = torch.tensor(wav).to(self.device)
-            est_sources = self.separate_batch(batch)
-            est_sources = est_sources / est_sources.max(dim=1, keepdim=True)[0]
-            est_sources = est_sources.detach().cpu()
-            temp_result.append([est_sources[:, :, 0].squeeze().numpy(),
-                                est_sources[:, :, 1].squeeze().numpy()])
-
-        sep_result = concate_wav(temp_result, seg_len, overlap)
+        sep_result = self.separate_wav(wav=wav_a, seg_len=seg_len, overlap=overlap, rate=rate)
         return sep_result
 
-    def separate_wav(self, wav, seg_len=210, overlap=30):
-        splited_wav = split_wav(wav, seg_len, overlap)
+    def separate_wav(self, wav, seg_len=210, overlap=30, rate=8000):
+        """Separate sources from np.array.
+
+        Arguments
+        ---------
+        wav : str
+            np.array of audio which already be loaded.
+        seg_len : int
+            segment length of audio. (s)
+        overlap : int
+            overlap length of audio. (s)
+        rate : int
+            rate of audio. (s)
+        Returns
+        -------
+        tensor
+            Separated sources
+        """
+        splited_wav = split_wav(wav=wav, seg_len=seg_len, overlap=overlap, rate=rate)
         temp_result = []
         for wav in splited_wav:
             batch = torch.tensor(wav).to(self.device)
@@ -142,5 +156,6 @@ class DprnnModel(Pretrained):
             temp_result.append([est_sources[:, :, 0].squeeze().numpy(),
                                 est_sources[:, :, 1].squeeze().numpy()])
 
-        sep_result = concate_wav(temp_result, seg_len, overlap)
+        torch.cuda.empty_cache()
+        sep_result = concate_wav(wav_pair=temp_result, seg_len=seg_len, overlap=overlap, rate=rate)
         return sep_result
